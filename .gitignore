@@ -1,0 +1,4 @@
+build*/
+game/
+build_assets/
+*.vpk

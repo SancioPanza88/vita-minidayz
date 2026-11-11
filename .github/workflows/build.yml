@@ -1,0 +1,45 @@
+name: Build VPK
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: 'Versione del gioco: plus, original, reloaded'
+        default: plus
+
+permissions:
+  contents: write
+
+jobs:
+  vpk:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scarica i dati del gioco
+        run: tools/fetch_game.sh ${{ github.event.inputs.variant || 'plus' }}
+
+      - name: Immagini LiveArea
+        run: |
+          pip install --quiet pillow
+          python3 tools/make_livearea.py
+
+      - name: Compila con VitaSDK
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src vitasdk/vitasdk:latest sh tools/ci_build.sh
+          cp build-vita/vita_minidayz.vpk MiniDayZ.vpk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MiniDayZ-vpk
+          path: MiniDayZ.vpk
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: MiniDayZ.vpk

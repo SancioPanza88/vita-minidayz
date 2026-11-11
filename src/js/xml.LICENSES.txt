@@ -1,0 +1,4 @@
+xml.js bundles:
+ - @xmldom/xmldom (MIT) https://github.com/xmldom/xmldom
+ - xpath (MIT) https://github.com/goto100/xpath
+Rebuild: see tools/build_xml_bundle.sh

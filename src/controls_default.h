@@ -1,0 +1,22 @@
+/* Default control mapping, also written to ux0:data/MiniDayZ/controls.txt on first run. */
+static const char controls_default[] =
+"# Mini DayZ Vita - controlli / controls\n"
+"# Coordinate in pixel dello schermo (960x544). 'cursor' = tocca dove si trova il cursore.\n"
+"# Metti -1 per disattivare un tasto. Il touch screen frontale funziona sempre.\n"
+"#\n"
+"# Levetta sinistra / croce direzionale: movimento\n"
+"move_center = 480, 272\n"
+"move_radius = 110\n"
+"deadzone = 0.25\n"
+"dpad_move = 1\n"
+"# Levetta destra: muove il cursore\n"
+"cursor_speed = 650\n"
+"#\n"
+"cross = 918, 232       # azione / raccogli / interagisci (icona mano)\n"
+"square = 918, 508      # arma / attacco (in basso a destra)\n"
+"triangle = 36, 506     # zaino / inventario\n"
+"circle = 932, 130      # diario\n"
+"start = 932, 64        # impostazioni / pausa\n"
+"select = 30, 32        # personaggio\n"
+"r = cursor             # tocco/trascinamento sul cursore (menu, inventario)\n"
+"l = cursor\n";
