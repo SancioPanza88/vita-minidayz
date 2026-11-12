@@ -2,7 +2,7 @@ name: Build VPK
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'dbg-*']
     tags: ['v*']
   pull_request:
   workflow_dispatch:
@@ -45,6 +45,11 @@ jobs:
         with:
           name: MiniDayZ-vpk
           path: MiniDayZ.vpk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MiniDayZ-elf-debug
+          path: build-vita/vita_minidayz
 
       - uses: actions/upload-artifact@v4
         with:
