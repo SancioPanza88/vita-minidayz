@@ -14,13 +14,16 @@
 #define OUT_RATE 48000
 #define MAX_BUF 1024
 #define MAX_VOICE 48
-#define STREAM_THRESHOLD (1536 * 1024) /* decoded bytes above which we stream */
+#define STREAM_THRESHOLD (384 * 1024)      /* decoded bytes above which a sound is streamed */
+#define DECODED_BUDGET (40 * 1024 * 1024)    /* max total memory for fully decoded sounds */
+static size_t decoded_total;
 
 typedef struct {
 	int used, refs;
 	int channels, rate;
 	int frames;
 	int16_t *pcm;          /* decoded, or NULL if streamed */
+	size_t pcm_bytes;
 	uint8_t *ogg; int ogg_size;
 } ABuf;
 
@@ -43,6 +46,7 @@ static int voice_serial[MAX_VOICE];
 static void buf_unref(int id) {
 	ABuf *b = &bufs[id];
 	if (--b->refs <= 0) {
+		decoded_total -= b->pcm_bytes;
 		free(b->pcm); free(b->ogg);
 		memset(b, 0, sizeof(*b));
 	}
@@ -138,25 +142,34 @@ static JSValue js_decode(JSContext *ctx, JSValueConst t, int argc, JSValueConst 
 	int frames = (int)stb_vorbis_stream_length_in_samples(vb);
 	int id = -1;
 	plat_audio_lock();
-	for (int i = 1; i < MAX_BUF; i++) if (!bufs[i].used) { id = i; break; }
+	for (int i = 1; i < MAX_BUF; i++) if (!bufs[i].used) { id = i; bufs[i].used = 1; break; }
 	plat_audio_unlock();
 	if (id < 0) { stb_vorbis_close(vb); host_logf("out of audio buffers"); return JS_NewInt32(ctx, -1); }
 	ABuf b = { 0 };
 	b.used = 1; b.refs = 1;
 	b.channels = info.channels > 1 ? 2 : 1;
-	b.rate = info.sample_rate;
-	b.frames = frames;
-	if ((size_t)frames * b.channels * 2 > STREAM_THRESHOLD) {
+	b.rate = info.sample_rate > 0 ? info.sample_rate : 44100;
+	int known = frames > 0 && frames < 0x7FFFFFF;
+	b.frames = known ? frames : b.rate * 60; /* unknown length: assume one minute, ends at EOF */
+	size_t need = known ? (size_t)frames * b.channels * 2 : 0;
+	if (known && need <= STREAM_THRESHOLD && decoded_total + need <= DECODED_BUDGET && info.channels <= 2) {
+		b.pcm = malloc(need + b.channels * 2);
+		if (b.pcm) {
+			b.frames = stb_vorbis_get_samples_short_interleaved(vb, b.channels, b.pcm, frames * b.channels);
+			decoded_total += need;
+			b.pcm_bytes = need;
+		}
+	}
+	if (!b.pcm) {
 		b.ogg = malloc(sz);
+		if (!b.ogg) {
+			stb_vorbis_close(vb);
+			host_logf("audio: out of memory (%u bytes)", (unsigned)sz);
+			plat_audio_lock(); bufs[id].used = 0; plat_audio_unlock();
+			return JS_NewInt32(ctx, -1);
+		}
 		memcpy(b.ogg, p, sz);
 		b.ogg_size = (int)sz;
-	} else {
-		b.pcm = malloc((size_t)(frames + 1) * b.channels * 2);
-		int got = 0;
-		if (b.channels == 1 || info.channels <= 2) {
-			got = stb_vorbis_get_samples_short_interleaved(vb, b.channels, b.pcm, frames * b.channels);
-		}
-		b.frames = got;
 	}
 	stb_vorbis_close(vb);
 	plat_audio_lock();
