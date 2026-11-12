@@ -32,16 +32,27 @@ jobs:
         run: |
           docker run --rm -v "$PWD:/src" -w /src vitasdk/vitasdk:latest sh tools/ci_build.sh
           cp build-vita/vita_minidayz.vpk MiniDayZ.vpk
-          zip -q -r MiniDayZ.vpk game
-          unzip -l MiniDayZ.vpk | tail -1
+
+      - name: Pacchetto dati (ux0:data/MiniDayZ)
+        run: |
+          mkdir -p pkg && cp -r game pkg/MiniDayZ
+          (cd pkg && zip -q -r ../MiniDayZ_data.zip MiniDayZ)
+          unzip -l MiniDayZ_data.zip | tail -1
 
       - uses: actions/upload-artifact@v4
         with:
           name: MiniDayZ-vpk
           path: MiniDayZ.vpk
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MiniDayZ-data
+          path: MiniDayZ_data.zip
+
       - name: Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: MiniDayZ.vpk
+          files: |
+            MiniDayZ.vpk
+            MiniDayZ_data.zip

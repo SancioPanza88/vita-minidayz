@@ -10,11 +10,12 @@ Il gioco originale è un export HTML5 di Construct 2. Invece di usare il browser
 
 ## Installazione
 
-1. Scarica `MiniDayZ.vpk` dalla scheda **Actions** (ultimo build riuscito → artifact `MiniDayZ-vpk`) oppure dalle **Releases**.
-2. Installalo con VitaShell.
-3. Serve `ur0:data/libshacccg.suprx` (compilatore di shader). Se non ce l'hai, estrailo con [ShaRKBR33D](https://github.com/Rinnegatamante/ShaRKBR33D). Se manca, il gioco lo segnala all'avvio.
+1. Scarica dalla scheda **Actions** (ultimo build riuscito) gli artifact `MiniDayZ-vpk` e `MiniDayZ-data`, oppure i file dalle **Releases**.
+2. Installa `MiniDayZ.vpk` con VitaShell (è piccolo, solo l'eseguibile).
+3. Estrai `MiniDayZ_data.zip` in `ux0:data/`: deve risultare `ux0:data/MiniDayZ/data.js`, `ux0:data/MiniDayZ/images/`, `ux0:data/MiniDayZ/media/` ecc.
+4. Serve `ur0:data/libshacccg.suprx` (compilatore di shader). Se non ce l'hai, estrailo con [ShaRKBR33D](https://github.com/Rinnegatamante/ShaRKBR33D). Se manca, il gioco lo segnala all'avvio.
 
-Salvataggi, log e configurazione dei tasti si trovano in `ux0:data/MiniDayZ/`:
+Nella stessa cartella `ux0:data/MiniDayZ/` vengono creati anche:
 `storage.json` (salvataggi), `log.txt` (log per segnalare problemi), `controls.txt` (tasti).
 
 ## Comandi
@@ -44,7 +45,7 @@ In locale:
 tools/fetch_game.sh plus          # scarica il gioco in ./game
 python3 tools/make_livearea.py    # immagini LiveArea
 docker run --rm -v "$PWD:/src" -w /src vitasdk/vitasdk sh tools/ci_build.sh
-cp build-vita/vita_minidayz.vpk MiniDayZ.vpk && zip -r MiniDayZ.vpk game
+# VPK: build-vita/vita_minidayz.vpk — dati: copia il contenuto di ./game in ux0:data/MiniDayZ/
 ```
 
 Esiste anche una build Linux di test (EGL headless, input da script, screenshot) per sviluppare senza console:

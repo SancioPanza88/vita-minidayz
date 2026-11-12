@@ -78,8 +78,10 @@ int plat_init(void) {
 			"github.com/Rinnegatamante/ShaRKBR33D");
 		return -1;
 	}
-	if (!file_exists("app0:game/data.js")) {
-		fatal_dialog("Dati del gioco mancanti (app0:game/data.js).\nGame data missing.");
+	if (!file_exists(SAVE_DIR "data.js") || !file_exists(SAVE_DIR "c2runtime.js")) {
+		fatal_dialog("Dati del gioco mancanti.\nCopia il contenuto di MiniDayZ_data.zip in ux0:data/\n"
+			"(deve esistere ux0:data/MiniDayZ/data.js)\n\n"
+			"Game data missing: extract MiniDayZ_data.zip to ux0:data/");
 		return -1;
 	}
 
@@ -158,7 +160,7 @@ void plat_audio_start(AudioMixFn fn) {
 
 void plat_audio_lock(void) { sceKernelLockLwMutex(&audio_mtx, 1, NULL); }
 void plat_audio_unlock(void) { sceKernelUnlockLwMutex(&audio_mtx, 1); }
-const char *plat_game_dir(void) { return "app0:game/"; }
+const char *plat_game_dir(void) { return SAVE_DIR; }
 const char *plat_res_dir(void) { return "app0:res/"; }
 const char *plat_save_dir(void) { return SAVE_DIR; }
 
