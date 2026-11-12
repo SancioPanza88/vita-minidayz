@@ -71,7 +71,6 @@ int plat_init(void) {
 	sceAppUtilInit(&ip, &bp);
 
 	vglInitExtended(0, SCREEN_W, SCREEN_H, 8 * 1024 * 1024, SCE_GXM_MULTISAMPLE_NONE);
-	vglUseVram(GL_TRUE);
 
 	if (!file_exists("ur0:data/libshacccg.suprx") && !file_exists("ur0:data/external/libshacccg.suprx")) {
 		fatal_dialog("libshacccg.suprx non trovato.\nlibshacccg.suprx not found.\n\n"
