@@ -164,6 +164,15 @@ const char *plat_game_dir(void) { return SAVE_DIR; }
 const char *plat_res_dir(void) { return "app0:res/"; }
 const char *plat_save_dir(void) { return SAVE_DIR; }
 
+void plat_fatal(const char *msg) {
+	char buf[512];
+	plat_log(msg);
+	snprintf(buf, sizeof(buf), "Errore / Error:\n%s\n\nDettagli in ux0:data/MiniDayZ/log.txt", msg);
+	fatal_dialog(buf);
+	if (logf_) fclose(logf_);
+	sceKernelExitProcess(0);
+}
+
 const char *plat_lang(void) {
 	int l = 1;
 	sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_LANG, &l);

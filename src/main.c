@@ -97,18 +97,20 @@ static void run_jobs(void) {
 }
 
 /* calls global function `name` with numeric args */
-void host_call(const char *name, int argc, double *args) {
+int host_call(const char *name, int argc, double *args) {
+	int ok = 1;
 	JSValue g = JS_GetGlobalObject(g_ctx);
 	JSValue f = JS_GetPropertyStr(g_ctx, g, name);
 	if (JS_IsFunction(g_ctx, f)) {
 		JSValue av[8];
 		for (int i = 0; i < argc && i < 8; i++) av[i] = JS_NewFloat64(g_ctx, args[i]);
 		JSValue r = JS_Call(g_ctx, f, g, argc, av);
-		if (JS_IsException(r)) dump_exception(g_ctx);
+		if (JS_IsException(r)) { dump_exception(g_ctx); ok = 0; }
 		JS_FreeValue(g_ctx, r);
 	}
 	JS_FreeValue(g_ctx, f);
 	JS_FreeValue(g_ctx, g);
+	return ok;
 }
 
 /* evalScript(source, name): global-scope evaluation (used to load the patched runtime) */
@@ -155,9 +157,13 @@ int main(int argc, char **argv) {
 	const char *scripts[] = { "glconst.js", "xml.js", "prelude.js", NULL };
 	for (int i = 0; scripts[i]; i++) {
 		snprintf(path, sizeof(path), "%s%s", plat_res_dir(), scripts[i]);
-		if (eval_file(path, scripts[i]) != 0) { host_logf("fatal: %s failed", scripts[i]); goto out; }
+		if (eval_file(path, scripts[i]) != 0) {
+			char msg[600];
+			snprintf(msg, sizeof(msg), "%s non caricato / failed to load", path);
+			plat_fatal(msg);
+		}
 	}
-	host_call("__boot", 0, NULL);
+	if (!host_call("__boot", 0, NULL)) plat_fatal("avvio del gioco fallito / game startup failed (c2runtime.js)");
 	run_jobs();
 
 	InputState in;
@@ -182,7 +188,6 @@ int main(int argc, char **argv) {
 		overlay_draw();
 		plat_swap(frame);
 	}
-out:
 	plat_shutdown();
 	return 0;
 }

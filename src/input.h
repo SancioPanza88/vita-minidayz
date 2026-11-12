@@ -2,4 +2,4 @@
 #include "platform.h"
 void input_load_config(void);
 void input_process(InputState *in);
-void host_call(const char *name, int argc, double *args);
+int host_call(const char *name, int argc, double *args);

@@ -38,5 +38,6 @@ const char *plat_game_dir(void);   /* read-only game data, trailing slash */
 const char *plat_res_dir(void);    /* our own resources (prelude, font) */
 const char *plat_save_dir(void);   /* writable, trailing slash */
 void plat_log(const char *s);
+void plat_fatal(const char *msg);   /* shows the error to the user, then exits */
 const char *plat_lang(void);        /* e.g. "it-IT" */
 void overlay_draw(void);              /* input.c: cursor drawn over the game */

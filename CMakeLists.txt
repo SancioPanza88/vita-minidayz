@@ -43,6 +43,7 @@ if(VITA)
     NAME ${VITA_APP_NAME}
     FILE src/js/prelude.js res/prelude.js
     FILE src/js/glconst.js res/glconst.js
+    FILE src/js/xml.js res/xml.js
     FILE assets/fonts/LiberationSans-Regular.ttf res/LiberationSans-Regular.ttf
     FILE ${CMAKE_SOURCE_DIR}/build_assets/sce_sys/icon0.png sce_sys/icon0.png
     FILE ${CMAKE_SOURCE_DIR}/build_assets/sce_sys/pic0.png sce_sys/pic0.png

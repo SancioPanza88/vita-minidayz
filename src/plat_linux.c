@@ -175,3 +175,4 @@ const char *plat_res_dir(void) { return res_dir; }
 const char *plat_save_dir(void) { return save_dir; }
 void plat_log(const char *s) { fprintf(stderr, "%s\n", s); }
 const char *plat_lang(void) { const char *l = getenv("MDZ_LANG"); return l ? l : "en-US"; }
+void plat_fatal(const char *msg) { fprintf(stderr, "FATAL: %s\n", msg); exit(1); }
