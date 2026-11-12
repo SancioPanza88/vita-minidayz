@@ -36,12 +36,8 @@ if(VITA)
     SceLibKernel_stub SceKernelThreadMgr_stub
     stdc++ pthread m c)
   vita_create_self(eboot.bin ${PROJECT_NAME} UNSAFE)
-  # Game data (fetched by tools/fetch_game.sh into ./game) and our resources go in the VPK.
-  file(GLOB_RECURSE GAME_FILES RELATIVE ${CMAKE_SOURCE_DIR}/game ${CMAKE_SOURCE_DIR}/game/*)
-  set(VPK_FILES)
-  foreach(f ${GAME_FILES})
-    list(APPEND VPK_FILES FILE ${CMAKE_SOURCE_DIR}/game/${f} game/${f})
-  endforeach()
+  # Game data (./game, some names contain spaces) is added to the VPK afterwards with zip,
+  # see tools/ci_build.sh / the workflow.
   vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} eboot.bin
     VERSION ${VITA_VERSION}
     NAME ${VITA_APP_NAME}
@@ -53,7 +49,6 @@ if(VITA)
     FILE ${CMAKE_SOURCE_DIR}/build_assets/sce_sys/livearea/contents/bg.png sce_sys/livearea/contents/bg.png
     FILE ${CMAKE_SOURCE_DIR}/build_assets/sce_sys/livearea/contents/startup.png sce_sys/livearea/contents/startup.png
     FILE assets/sce_sys/livearea/contents/template.xml sce_sys/livearea/contents/template.xml
-    ${VPK_FILES}
   )
 else()
   # Linux test host (headless EGL + GLES2 from Mesa)

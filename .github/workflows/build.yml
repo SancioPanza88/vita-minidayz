@@ -32,6 +32,8 @@ jobs:
         run: |
           docker run --rm -v "$PWD:/src" -w /src vitasdk/vitasdk:latest sh tools/ci_build.sh
           cp build-vita/vita_minidayz.vpk MiniDayZ.vpk
+          zip -q -r MiniDayZ.vpk game
+          unzip -l MiniDayZ.vpk | tail -1
 
       - uses: actions/upload-artifact@v4
         with:

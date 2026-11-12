@@ -44,6 +44,7 @@ In locale:
 tools/fetch_game.sh plus          # scarica il gioco in ./game
 python3 tools/make_livearea.py    # immagini LiveArea
 docker run --rm -v "$PWD:/src" -w /src vitasdk/vitasdk sh tools/ci_build.sh
+cp build-vita/vita_minidayz.vpk MiniDayZ.vpk && zip -r MiniDayZ.vpk game
 ```
 
 Esiste anche una build Linux di test (EGL headless, input da script, screenshot) per sviluppare senza console:
