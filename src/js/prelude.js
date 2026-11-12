@@ -377,7 +377,10 @@ window.c2ejecta = true; // makes Construct 2 use its DOM-free code paths
       l.loaded = l.total = data ? (data.byteLength || data.length) : 0; l.lengthComputable = true;
       x._fire(l);
       var le = new Event('loadend'); le.target = x; x._fire(le);
-      if (/data\.js$/.test(url)) console.log('[xhr] ' + url + ' handled in ' + Math.round(N.now() - t0) + ' ms total');
+      if (/data\.js$/.test(url)) {
+        x.response = x.responseText = null; // 8.6 MB string, not needed any more
+        console.log('[xhr] ' + url + ' handled in ' + Math.round(N.now() - t0) + ' ms total, js heap ' + Math.round(N.memInfo() / 1048576) + ' MB');
+      }
     }
     if (this._async) setTimeout(done, 0); else done();
   };
@@ -1062,7 +1065,7 @@ window.c2ejecta = true; // makes Construct 2 use its DOM-free code paths
     var fd = N.now() - fs;
     beatN++; beatT += fd; if (fd > beatW) beatW = fd;
     if (frameNo <= 5 || fd > 2000 || beatN >= 300) {
-      console.log('[frame ' + frameNo + '] t=' + Math.round(now / 1000) + 's js avg ' + (beatT / beatN).toFixed(1) + ' ms, max ' + Math.round(beatW) + ' ms, images ' + nImgLoaded);
+      console.log('[frame ' + frameNo + '] t=' + Math.round(now / 1000) + 's js avg ' + (beatT / beatN).toFixed(1) + ' ms, max ' + Math.round(beatW) + ' ms, images ' + nImgLoaded + ', js heap ' + Math.round(N.memInfo() / 1048576) + ' MB');
       beatN = 0; beatT = 0; beatW = 0;
     }
   };

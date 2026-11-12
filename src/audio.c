@@ -15,7 +15,7 @@
 #define MAX_BUF 1024
 #define MAX_VOICE 48
 #define STREAM_THRESHOLD (384 * 1024)      /* decoded bytes above which a sound is streamed */
-#define DECODED_BUDGET (40 * 1024 * 1024)    /* max total memory for fully decoded sounds */
+#define DECODED_BUDGET (24 * 1024 * 1024)    /* max total memory for fully decoded sounds */
 static size_t decoded_total;
 
 typedef struct {

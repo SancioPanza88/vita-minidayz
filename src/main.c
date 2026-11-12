@@ -88,6 +88,19 @@ static int eval_file(const char *path, const char *name) {
 	return 0;
 }
 
+/* QuickJS lets the heap grow to 150% of the live size before collecting; with a
+ * ~150 MB live heap that does not fit in the Vita's RAM. Keep the headroom fixed. */
+#define GC_HEADROOM (24 * 1024 * 1024)
+static void clamp_gc_threshold(void) {
+	static size_t ours;
+	size_t t = JS_GetGCThreshold(g_rt);
+	if (t == ours) return;
+	size_t live = t / 3 * 2; /* threshold was just set to live * 1.5 by a collection */
+	ours = live + GC_HEADROOM;
+	if (ours > t) ours = t;
+	JS_SetGCThreshold(g_rt, ours);
+}
+
 static void run_jobs(void) {
 	JSContext *c;
 	int r;
@@ -124,6 +137,17 @@ static JSValue js_eval_script(JSContext *ctx, JSValueConst this_val, int argc, J
 	return r;
 }
 
+/* memInfo() -> JS heap bytes in use */
+static JSValue js_mem_info(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
+	JSMemoryUsage u;
+	if (argc > 0 && JS_ToBool(ctx, argv[0])) JS_RunGC(g_rt);
+	JS_ComputeMemoryUsage(g_rt, &u);
+#ifndef __vita__
+	if (argc > 1) JS_DumpMemoryUsage(stderr, &u, g_rt);
+#endif
+	return JS_NewFloat64(ctx, (double)u.malloc_size);
+}
+
 static JSValue js_log(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
 	const char *s = JS_ToCString(ctx, argv[0]);
 	if (s) { plat_log(s); JS_FreeCString(ctx, s); }
@@ -137,13 +161,14 @@ int main(int argc, char **argv) {
 	g_rt = JS_NewRuntime();
 	JS_SetMemoryLimit(g_rt, 0);
 	JS_SetMaxStackSize(g_rt, 0); /* stack is checked by the OS thread size */
-	JS_SetGCThreshold(g_rt, 96 * 1024 * 1024);
+	JS_SetGCThreshold(g_rt, 32 * 1024 * 1024);
 	g_ctx = JS_NewContext(g_rt);
 
 	JSValue global = JS_GetGlobalObject(g_ctx);
 	JSValue n = JS_NewObject(g_ctx);
 	host_set_func(g_ctx, n, "log", js_log, 1);
 	host_set_func(g_ctx, n, "evalScript", js_eval_script, 2);
+	host_set_func(g_ctx, n, "memInfo", js_mem_info, 0);
 	natives_register(g_ctx, n);
 	gl_register(g_ctx, n);
 	audio_register(g_ctx, n);
@@ -179,6 +204,7 @@ int main(int argc, char **argv) {
 #endif
 		host_call("__frame", 1, &now);
 		run_jobs();
+		clamp_gc_threshold();
 #ifdef MDZ_PROFILE
 		clock_gettime(CLOCK_MONOTONIC, &b);
 		static double js_acc; static int js_n;

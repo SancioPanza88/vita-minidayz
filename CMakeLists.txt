@@ -40,6 +40,8 @@ if(VITA)
     SceLibKernel_stub SceKernelThreadMgr_stub
     stdc++ pthread m c)
   vita_create_self(eboot.bin ${PROJECT_NAME} UNSAFE)
+  # ATTRIBUTE2=12: extended memory mode (more RAM for the JS heap)
+  set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d ATTRIBUTE2=12")
   # Game data (./game, some names contain spaces) is added to the VPK afterwards with zip,
   # see tools/ci_build.sh / the workflow.
   vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} eboot.bin

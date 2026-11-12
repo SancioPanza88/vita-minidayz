@@ -21,7 +21,7 @@
 /* QuickJS recurses deeply while parsing/executing; give it room. */
 unsigned int sceUserMainThreadStackSize = 4 * 1024 * 1024;
 /* newlib heap: JS heap + decoded assets. The rest of the RAM is left to vitaGL. */
-int _newlib_heap_size_user = 230 * 1024 * 1024;
+int _newlib_heap_size_user = 300 * 1024 * 1024; /* needs ATTRIBUTE2=12 (extra RAM), see CMakeLists */
 
 #define SAVE_DIR "ux0:data/MiniDayZ/"
 
