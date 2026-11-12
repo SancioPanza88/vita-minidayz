@@ -47,7 +47,6 @@ V0(clear, glClear(I(0)))
 V0(clearColor, glClearColor(F(0), F(1), F(2), F(3)))
 V0(clearDepth, glClearDepthf(F(0)))
 V0(colorMask, glColorMask(I(0), I(1), I(2), I(3)))
-V0(compileShader, glCompileShader(I(0)))
 V0(deleteProgram, glDeleteProgram(I(0)))
 V0(deleteShader, glDeleteShader(I(0)))
 V0(depthFunc, glDepthFunc(I(0)))
@@ -98,6 +97,12 @@ DEL(deleteTexture, glDeleteTextures)
 DEL(deleteFramebuffer, glDeleteFramebuffers)
 DEL(deleteRenderbuffer, glDeleteRenderbuffers)
 
+static JSValue js_compileShader(JSContext *ctx, JSValueConst t, int argc, JSValueConst *argv) {
+	double a = plat_now_ms();
+	glCompileShader(I(0));
+	host_logf("[gl] shader %d compiled in %d ms", I(0), (int)(plat_now_ms() - a));
+	return JS_UNDEFINED;
+}
 static JSValue js_createProgram(JSContext *ctx, JSValueConst t, int argc, JSValueConst *argv) { return JS_NewInt32(ctx, glCreateProgram()); }
 static JSValue js_createShader(JSContext *ctx, JSValueConst t, int argc, JSValueConst *argv) { return JS_NewInt32(ctx, glCreateShader(I(0))); }
 static JSValue js_getError(JSContext *ctx, JSValueConst t, int argc, JSValueConst *argv) { return JS_NewInt32(ctx, glGetError()); }

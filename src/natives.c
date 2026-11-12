@@ -112,8 +112,17 @@ static JSValue js_image_info(JSContext *ctx, JSValueConst this_val, int argc, JS
 	FILE *f = fopen(p, "rb");
 	free(p);
 	if (!f) return JS_NULL;
-	unsigned char hdr[64 * 1024];
-	size_t n = fread(hdr, 1, sizeof(hdr), f);
+	static unsigned char hdr[64 * 1024];
+	size_t n = fread(hdr, 1, 32, f);
+	/* PNG: size is in the IHDR chunk, no need to read more */
+	if (n >= 24 && hdr[0] == 0x89 && hdr[1] == 'P' && hdr[2] == 'N' && hdr[3] == 'G') {
+		fclose(f);
+		JSValue a = JS_NewArray(ctx);
+		JS_SetPropertyUint32(ctx, a, 0, JS_NewInt32(ctx, (hdr[16] << 24) | (hdr[17] << 16) | (hdr[18] << 8) | hdr[19]));
+		JS_SetPropertyUint32(ctx, a, 1, JS_NewInt32(ctx, (hdr[20] << 24) | (hdr[21] << 16) | (hdr[22] << 8) | hdr[23]));
+		return a;
+	}
+	n += fread(hdr + n, 1, sizeof(hdr) - n, f);
 	fclose(f);
 	int w, h, c;
 	if (!stbi_info_from_memory(hdr, (int)n, &w, &h, &c)) return JS_NULL;

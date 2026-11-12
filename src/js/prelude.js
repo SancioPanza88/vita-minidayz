@@ -356,7 +356,9 @@ window.c2ejecta = true; // makes Construct 2 use its DOM-free code paths
     function done() {
       if (x._aborted) return;
       var url = x._url.replace(/^\.\//, '').replace(/^file:\/\/\//, '');
+      var t0 = N.now();
       var data = (x.responseType === 'arraybuffer' || x.responseType === 'blob') ? N.readBinary(url) : N.readText(url);
+      if (/\.js$|\.json$|\.xml$/.test(url)) console.log('[xhr] ' + url + ' read in ' + Math.round(N.now() - t0) + ' ms');
       x.readyState = 4;
       if (data === null) {
         x.status = 404; x.statusText = 'Not Found';
@@ -372,6 +374,7 @@ window.c2ejecta = true; // makes Construct 2 use its DOM-free code paths
       l.loaded = l.total = data ? (data.byteLength || data.length) : 0; l.lengthComputable = true;
       x._fire(l);
       var le = new Event('loadend'); le.target = x; x._fire(le);
+      if (/data\.js$/.test(url)) console.log('[xhr] ' + url + ' handled in ' + Math.round(N.now() - t0) + ' ms total');
     }
     if (this._async) setTimeout(done, 0); else done();
   };
@@ -404,6 +407,7 @@ window.c2ejecta = true; // makes Construct 2 use its DOM-free code paths
         img.naturalWidth = img.width = info[0];
         img.naturalHeight = img.height = info[1];
         img.complete = true;
+        nImgLoaded++;
         var l = new Event('load'); l.target = img; img._fire(l);
       }, 0);
     }
@@ -992,9 +996,11 @@ window.c2ejecta = true; // makes Construct 2 use its DOM-free code paths
   }
 
   window.__boot = function () {
+    var t = N.now();
     var src = N.readText('c2runtime.js');
     if (src === null) throw new Error('c2runtime.js not found in the game folder');
     N.evalScript(patchRuntime(src), 'c2runtime.js');
+    console.log('[boot] runtime evaluated in ' + Math.round(N.now() - t) + ' ms');
     var div = new Element('div');
     div.id = 'c2canvasdiv';
     document.body.appendChild(div);
@@ -1005,13 +1011,17 @@ window.c2ejecta = true; // makes Construct 2 use its DOM-free code paths
     div.appendChild(mainCanvas);
     byId.c2canvasdiv = div;
     byId.c2canvas = mainCanvas;
+    t = N.now();
     window.cr_createRuntime('c2canvas');
+    console.log('[boot] runtime created in ' + Math.round(N.now() - t) + ' ms');
   };
 
-  var frameNo = 0;
+  var frameNo = 0, beatT = 0, beatN = 0, beatW = 0, nImgLoaded = 0;
+  window.__imgLoaded = function () { nImgLoaded++; };
   window.__frame = function (now) {
     clock = now;
     frameNo++;
+    var fs = N.now();
     runTimers();
     var list = rafs; rafs = [];
     for (var i = 0; i < list.length; i++) {
@@ -1019,5 +1029,11 @@ window.c2ejecta = true; // makes Construct 2 use its DOM-free code paths
     }
     updateAudio();
     flushStorage(false);
+    var fd = N.now() - fs;
+    beatN++; beatT += fd; if (fd > beatW) beatW = fd;
+    if (frameNo <= 5 || fd > 2000 || beatN >= 300) {
+      console.log('[frame ' + frameNo + '] t=' + Math.round(now / 1000) + 's js avg ' + (beatT / beatN).toFixed(1) + ' ms, max ' + Math.round(beatW) + ' ms, images ' + nImgLoaded);
+      beatN = 0; beatT = 0; beatW = 0;
+    }
   };
 })();
