@@ -34,7 +34,7 @@ if(VITA)
     SceCtrl_stub SceTouch_stub SceAudio_stub SceAppUtil_stub SceAppMgr_stub
     ScePower_stub SceCommonDialog_stub SceSysmodule_stub SceIofilemgr_stub
     SceLibKernel_stub SceKernelThreadMgr_stub
-    m c)
+    stdc++ pthread m c)
   vita_create_self(eboot.bin ${PROJECT_NAME} UNSAFE)
   # Game data (fetched by tools/fetch_game.sh into ./game) and our resources go in the VPK.
   file(GLOB_RECURSE GAME_FILES RELATIVE ${CMAKE_SOURCE_DIR}/game ${CMAKE_SOURCE_DIR}/game/*)
