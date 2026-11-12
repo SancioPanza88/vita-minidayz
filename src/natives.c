@@ -395,7 +395,119 @@ static JSValue js_surf_text(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	return JS_UNDEFINED;
 }
 
+/* ---------- binary caches (QuickJS object/bytecode serialisation) ---------- */
+
+static uint32_t fnv(const char *s, size_t n) {
+	uint32_t h = 2166136261u;
+	for (size_t i = 0; i < n; i++) { h ^= (unsigned char)s[i]; h *= 16777619u; }
+	return h;
+}
+
+static void cache_path(char *out, size_t n, const char *name) { snprintf(out, n, "%scache_%s.bin", plat_save_dir(), name); }
+
+static uint8_t *cache_read(const char *name, const char *key, size_t *psize) {
+	char p[512];
+	cache_path(p, sizeof(p), name);
+	size_t sz;
+	uint8_t *buf = host_read_file(p, &sz);
+	if (!buf) return NULL;
+	size_t kl = strlen(key);
+	if (sz < kl + 1 || memcmp(buf, key, kl) || buf[kl] != '\n') { free(buf); return NULL; }
+	memmove(buf, buf + kl + 1, sz - kl - 1);
+	*psize = sz - kl - 1;
+	return buf;
+}
+
+static void cache_write(const char *name, const char *key, const uint8_t *data, size_t n) {
+	char p[512], tmp[520];
+	cache_path(p, sizeof(p), name);
+	snprintf(tmp, sizeof(tmp), "%s.tmp", p);
+	FILE *f = fopen(tmp, "wb");
+	if (!f) return;
+	int ok = fwrite(key, 1, strlen(key), f) == strlen(key) && fputc('\n', f) != EOF && fwrite(data, 1, n, f) == n;
+	fclose(f);
+	remove(p);
+	if (ok) rename(tmp, p); else remove(tmp);
+}
+
+/* evalCached(src, name): evaluates a script at global scope, keeping its bytecode on disk */
+static JSValue js_eval_cached(JSContext *ctx, JSValueConst t, int argc, JSValueConst *argv) {
+	size_t len;
+	const char *src = JS_ToCStringLen(ctx, &len, argv[0]);
+	const char *name = JS_ToCString(ctx, argv[1]);
+	if (!src || !name) return JS_EXCEPTION;
+	char key[64];
+	snprintf(key, sizeof(key), "v1:%zu:%08x", len, fnv(src, len));
+	size_t bsz;
+	uint8_t *bc = cache_read(name, key, &bsz);
+	JSValue fn = JS_UNDEFINED;
+	if (bc) {
+		fn = JS_ReadObject(ctx, bc, bsz, JS_READ_OBJ_BYTECODE);
+		free(bc);
+		if (JS_IsException(fn)) { JS_FreeValue(ctx, JS_GetException(ctx)); fn = JS_UNDEFINED; }
+	}
+	if (JS_IsUndefined(fn)) {
+		fn = JS_Eval(ctx, src, len, name, JS_EVAL_TYPE_GLOBAL | JS_EVAL_FLAG_COMPILE_ONLY);
+		if (JS_IsException(fn)) { JS_FreeCString(ctx, src); JS_FreeCString(ctx, name); return fn; }
+		size_t out_sz;
+		uint8_t *out = JS_WriteObject(ctx, &out_sz, fn, JS_WRITE_OBJ_BYTECODE);
+		if (out) { cache_write(name, key, out, out_sz); js_free(ctx, out); }
+	}
+	JS_FreeCString(ctx, src);
+	JS_FreeCString(ctx, name);
+	return JS_EvalFunction(ctx, fn);
+}
+
+/* objCacheRead(name, key) -> value or null */
+static JSValue js_obj_cache_read(JSContext *ctx, JSValueConst t, int argc, JSValueConst *argv) {
+	const char *name = JS_ToCString(ctx, argv[0]), *key = JS_ToCString(ctx, argv[1]);
+	JSValue r = JS_NULL;
+	size_t sz;
+	uint8_t *b = (name && key) ? cache_read(name, key, &sz) : NULL;
+	if (b) {
+		r = JS_ReadObject(ctx, b, sz, 0);
+		free(b);
+		if (JS_IsException(r)) { JS_FreeValue(ctx, JS_GetException(ctx)); r = JS_NULL; }
+	}
+	if (name) JS_FreeCString(ctx, name);
+	if (key) JS_FreeCString(ctx, key);
+	return r;
+}
+
+/* objCacheWrite(name, key, value) */
+static JSValue js_obj_cache_write(JSContext *ctx, JSValueConst t, int argc, JSValueConst *argv) {
+	const char *name = JS_ToCString(ctx, argv[0]), *key = JS_ToCString(ctx, argv[1]);
+	if (name && key) {
+		size_t sz;
+		uint8_t *out = JS_WriteObject(ctx, &sz, argv[2], 0);
+		if (out) { cache_write(name, key, out, sz); js_free(ctx, out); }
+		else JS_FreeValue(ctx, JS_GetException(ctx));
+	}
+	if (name) JS_FreeCString(ctx, name);
+	if (key) JS_FreeCString(ctx, key);
+	return JS_UNDEFINED;
+}
+
+/* fileSize(rel) -> bytes or -1 */
+static JSValue js_file_size(JSContext *ctx, JSValueConst t, int argc, JSValueConst *argv) {
+	const char *rel = JS_ToCString(ctx, argv[0]);
+	if (!rel) return JS_NewInt32(ctx, -1);
+	char *p = host_game_path(rel);
+	JS_FreeCString(ctx, rel);
+	FILE *f = fopen(p, "rb");
+	free(p);
+	if (!f) return JS_NewInt32(ctx, -1);
+	fseek(f, 0, SEEK_END);
+	long n = ftell(f);
+	fclose(f);
+	return JS_NewInt64(ctx, n);
+}
+
 void natives_register(JSContext *ctx, JSValue n) {
+	host_set_func(ctx, n, "evalCached", js_eval_cached, 2);
+	host_set_func(ctx, n, "objCacheRead", js_obj_cache_read, 2);
+	host_set_func(ctx, n, "objCacheWrite", js_obj_cache_write, 3);
+	host_set_func(ctx, n, "fileSize", js_file_size, 1);
 	host_set_func(ctx, n, "readText", js_read_text, 1);
 	host_set_func(ctx, n, "readBinary", js_read_binary, 1);
 	host_set_func(ctx, n, "storageLoad", js_storage_load, 0);

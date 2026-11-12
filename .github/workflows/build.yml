@@ -21,7 +21,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Scarica i dati del gioco
-        run: tools/fetch_game.sh ${{ github.event.inputs.variant || 'plus' }}
+        run: |
+          tools/fetch_game.sh ${{ github.event.inputs.variant || 'plus' }}
+          python3 tools/make_index.py
 
       - name: Immagini LiveArea
         run: |

@@ -357,7 +357,10 @@ window.c2ejecta = true; // makes Construct 2 use its DOM-free code paths
       if (x._aborted) return;
       var url = x._url.replace(/^\.\//, '').replace(/^file:\/\/\//, '');
       var t0 = N.now();
-      var data = (x.responseType === 'arraybuffer' || x.responseType === 'blob') ? N.readBinary(url) : N.readText(url);
+      var data = null;
+      if (url === 'data.js' && x.responseType !== 'arraybuffer') data = dataJsFromCache();
+      if (data === null) data = (x.responseType === 'arraybuffer' || x.responseType === 'blob') ? N.readBinary(url) : N.readText(url);
+      if (url === 'data.js' && data !== null && data !== DATA_MARKER) dataJsText = data;
       if (/\.js$|\.json$|\.xml$/.test(url)) console.log('[xhr] ' + url + ' read in ' + Math.round(N.now() - t0) + ' ms');
       x.readyState = 4;
       if (data === null) {
@@ -380,7 +383,34 @@ window.c2ejecta = true; // makes Construct 2 use its DOM-free code paths
   };
   window.XMLHttpRequest = XMLHttpRequest;
 
+  // data.js (8.6 MB of JSON) is parsed once and kept as a QuickJS binary object:
+  // much faster to load on the next start.
+  var DATA_MARKER = '{"__mdz_cached_project":1}', dataJsText = null, dataJsCached = null;
+  function dataKey() { return 'v1:' + N.fileSize('data.js'); }
+  function dataJsFromCache() {
+    var t = N.now(), o = N.objCacheRead('data', dataKey());
+    if (!o) return null;
+    console.log('[cache] data.js loaded from cache in ' + Math.round(N.now() - t) + ' ms');
+    dataJsCached = o;
+    return DATA_MARKER;
+  }
+  var origParse = JSON.parse;
+  JSON.parse = function (text, reviver) {
+    if (text === DATA_MARKER && dataJsCached) { var o = dataJsCached; dataJsCached = null; return o; }
+    if (dataJsText !== null && typeof text === 'string' && text.length > 1000000 && dataJsText.indexOf(text.slice(0, 64)) >= 0) {
+      dataJsText = null;
+      var t = N.now(), r = origParse(text, reviver);
+      console.log('[cache] data.js parsed in ' + Math.round(N.now() - t) + ' ms, writing cache');
+      N.objCacheWrite('data', dataKey(), r);
+      return r;
+    }
+    return origParse(text, reviver);
+  };
+
   // ---------------------------------------------------------------- images
+  var imageIndex = {};
+  try { var ii = N.readText('mdz_images.json'); if (ii) imageIndex = JSON.parse(ii); } catch (e) { console.warn('image index: ' + e); }
+
   function Image(w, h) {
     this.tagName = this.nodeName = 'IMG';
     this.style = {};
@@ -401,7 +431,7 @@ window.c2ejecta = true; // makes Construct 2 use its DOM-free code paths
         setTimeout(function () { img.complete = true; img.width = img.naturalWidth = 1; img.height = img.naturalHeight = 1; img._fire(new Event('load')); }, 0);
         return;
       }
-      var info = N.imageInfo(img._path);
+      var info = imageIndex[img._path] || N.imageInfo(img._path);
       setTimeout(function () {
         if (!info) { console.warn('image missing: ' + img._path); var e = new Event('error'); e.target = img; img._fire(e); return; }
         img.naturalWidth = img.width = info[0];
@@ -999,7 +1029,7 @@ window.c2ejecta = true; // makes Construct 2 use its DOM-free code paths
     var t = N.now();
     var src = N.readText('c2runtime.js');
     if (src === null) throw new Error('c2runtime.js not found in the game folder');
-    N.evalScript(patchRuntime(src), 'c2runtime.js');
+    N.evalCached(patchRuntime(src), 'c2runtime');
     console.log('[boot] runtime evaluated in ' + Math.round(N.now() - t) + ' ms');
     var div = new Element('div');
     div.id = 'c2canvasdiv';

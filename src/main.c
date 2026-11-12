@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
 	g_rt = JS_NewRuntime();
 	JS_SetMemoryLimit(g_rt, 0);
 	JS_SetMaxStackSize(g_rt, 0); /* stack is checked by the OS thread size */
-	JS_SetGCThreshold(g_rt, 32 * 1024 * 1024);
+	JS_SetGCThreshold(g_rt, 96 * 1024 * 1024);
 	g_ctx = JS_NewContext(g_rt);
 
 	JSValue global = JS_GetGlobalObject(g_ctx);

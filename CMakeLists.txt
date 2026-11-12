@@ -19,6 +19,10 @@ add_library(quickjs STATIC ${QJS}/quickjs.c ${QJS}/libregexp.c ${QJS}/libunicode
 target_include_directories(quickjs PUBLIC ${QJS})
 target_compile_definitions(quickjs PRIVATE _GNU_SOURCE)
 target_compile_options(quickjs PRIVATE -O2 -w -fno-strict-aliasing)
+target_compile_definitions(quickjs PRIVATE NDEBUG)
+if(VITA)
+  target_compile_options(quickjs PRIVATE -O3 -mcpu=cortex-a9 -mfpu=neon -fomit-frame-pointer)
+endif()
 
 set(SRC src/main.c src/natives.c src/gl.c src/audio.c src/input.c src/vorbis.c)
 
